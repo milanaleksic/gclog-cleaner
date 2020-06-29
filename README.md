@@ -8,16 +8,20 @@ This application removes those lines by default, but you can use regex to remove
 Algorithm is:
 
 ```go
-if isLogLine(line) {
-    if filteredOut(line) {
-        s = PassThrough
-    } else {
-        s = Reading
-    }
+if filteredOut(line) {
+    s = PassThrough
+} else if isLogLine(line) {
+    s = Reading
 }
 if s == Reading {
     fmt.Println(line)
 }
+```
+
+## Installation
+
+```
+go get -u github.com/milanaleksic/gclog-cleaner
 ```
 
 ## Usage

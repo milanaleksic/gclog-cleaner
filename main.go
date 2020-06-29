@@ -67,12 +67,10 @@ func main() {
 	}
 	for scanner.Scan() {
 		line := scanner.Text()
-		if isLogLine(line) {
-			if filteredOut(line) {
-				s = PassThrough
-			} else {
-				s = Reading
-			}
+		if filteredOut(line) {
+			s = PassThrough
+		} else if isLogLine(line) {
+			s = Reading
 		}
 		if s == Reading {
 			fmt.Println(line)
