@@ -1,0 +1,101 @@
+package main
+
+import (
+	"bufio"
+	"flag"
+	"fmt"
+	"log"
+	"os"
+	"regexp"
+)
+
+const (
+	Reading int = iota
+	GcEncountered
+)
+
+var (
+	beginMatcher     *regexp.Regexp
+	gcLogLineMatcher *regexp.Regexp
+	inputFile        *os.File
+	exclusions       []*regexp.Regexp
+)
+
+type exclusionsType []string
+
+func (i *exclusionsType) String() string {
+	return "exclusions (regex patterns)"
+}
+
+func (i *exclusionsType) Set(value string) error {
+	*i = append(*i, value)
+	return nil
+}
+
+func init() {
+	var beginPattern string
+	var gcLogLinePattern string
+	var inputFileLocation string
+	var exclusionsPatterns exclusionsType
+	flag.StringVar(&beginPattern, "begin-pattern", `\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}`, "pattern that should match beginning of all log lines")
+	flag.StringVar(&gcLogLinePattern, "log-line-pattern", `\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}.*\[GC`, "pattern that should match log lines that BEGIN gc logging")
+	flag.StringVar(&inputFileLocation, "input-file", "", "which file to process (default - stdin)")
+	flag.Var(&exclusionsPatterns, "exclusions", "additional exclusionsPatterns")
+	flag.Parse()
+
+	beginMatcher = regexp.MustCompile(beginPattern)
+	gcLogLineMatcher = regexp.MustCompile(gcLogLinePattern)
+	if inputFileLocation != "" {
+		var err error
+		inputFile, err = os.Open(inputFileLocation)
+		if err != nil {
+			log.Fatalf("Failed to open input file: %s, reason: %v", inputFileLocation, err)
+		}
+	}
+	exclusions = make([]*regexp.Regexp, len(exclusionsPatterns))
+	for i, pattern := range exclusionsPatterns {
+		exclusions[i] = regexp.MustCompile(pattern)
+	}
+}
+
+func main() {
+	var s int
+	var scanner *bufio.Scanner
+	if inputFile != nil {
+		scanner = bufio.NewScanner(inputFile)
+	} else {
+		scanner = bufio.NewScanner(os.Stdin)
+		_, _ = fmt.Fprintln(os.Stderr, "Reading from stdin")
+	}
+	for scanner.Scan() {
+		line := scanner.Text()
+		if isBeginOfGc(line) {
+			s = GcEncountered
+		} else if isLogLine(line) {
+			s = Reading
+		}
+		if s == Reading && !filteredOut(line) {
+			fmt.Println(line)
+		}
+	}
+	if err := scanner.Err(); err != nil {
+		log.Fatal(err)
+	}
+}
+
+func filteredOut(text string) bool {
+	for _, exclusion := range exclusions {
+		if len(exclusion.FindAllString(text, -1)) > 0 {
+			return true
+		}
+	}
+	return false
+}
+
+func isBeginOfGc(text string) bool {
+	return len(gcLogLineMatcher.FindAllString(text, -1)) > 0
+}
+
+func isLogLine(text string) bool {
+	return len(beginMatcher.FindAllString(text, -1)) > 0
+}
