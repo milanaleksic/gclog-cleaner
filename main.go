@@ -11,14 +11,15 @@ import (
 
 const (
 	Reading int = iota
-	GcEncountered
+	PassThrough
 )
 
 var (
-	beginMatcher     *regexp.Regexp
-	gcLogLineMatcher *regexp.Regexp
-	inputFile        *os.File
-	exclusions       []*regexp.Regexp
+	beginMatcher *regexp.Regexp
+	inputFile    *os.File
+	exclusions   = []*regexp.Regexp{
+		regexp.MustCompile(`\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}.*\[GC`),
+	}
 )
 
 type exclusionsType []string
@@ -34,17 +35,14 @@ func (i *exclusionsType) Set(value string) error {
 
 func init() {
 	var beginPattern string
-	var gcLogLinePattern string
 	var inputFileLocation string
 	var exclusionsPatterns exclusionsType
 	flag.StringVar(&beginPattern, "begin-pattern", `\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}`, "pattern that should match beginning of all log lines")
-	flag.StringVar(&gcLogLinePattern, "log-line-pattern", `\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}.*\[GC`, "pattern that should match log lines that BEGIN gc logging")
 	flag.StringVar(&inputFileLocation, "input-file", "", "which file to process (default - stdin)")
-	flag.Var(&exclusionsPatterns, "exclusions", "additional exclusionsPatterns")
+	flag.Var(&exclusionsPatterns, "exclusions", "exclusion patterns (default: only one - '\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}.*\\[GC')")
 	flag.Parse()
 
 	beginMatcher = regexp.MustCompile(beginPattern)
-	gcLogLineMatcher = regexp.MustCompile(gcLogLinePattern)
 	if inputFileLocation != "" {
 		var err error
 		inputFile, err = os.Open(inputFileLocation)
@@ -69,12 +67,14 @@ func main() {
 	}
 	for scanner.Scan() {
 		line := scanner.Text()
-		if isBeginOfGc(line) {
-			s = GcEncountered
-		} else if isLogLine(line) {
-			s = Reading
+		if isLogLine(line) {
+			if filteredOut(line) {
+				s = PassThrough
+			} else {
+				s = Reading
+			}
 		}
-		if s == Reading && !filteredOut(line) {
+		if s == Reading {
 			fmt.Println(line)
 		}
 	}
@@ -90,10 +90,6 @@ func filteredOut(text string) bool {
 		}
 	}
 	return false
-}
-
-func isBeginOfGc(text string) bool {
-	return len(gcLogLineMatcher.FindAllString(text, -1)) > 0
 }
 
 func isLogLine(text string) bool {

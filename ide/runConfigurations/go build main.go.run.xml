@@ -2,7 +2,7 @@
   <configuration default="false" name="go build main.go" type="GoApplicationRunConfiguration" factoryName="Go Application" nameIsGenerated="true">
     <module name="log-gc-cleaner" />
     <working_directory value="$PROJECT_DIR$" />
-    <parameters value="--input-file $PROJECT_DIR$/../terraform/s-1TO57WSNK3LWL-containers/stdout.head.log --exclusions &quot;Creating an interceptor chain&quot;" />
+    <parameters value="--input-file $PROJECT_DIR$/../terraform/s-1TO57WSNK3LWL-containers/stdout.head.log --exclusions '\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}.*\[GC' --exclusions &quot;Creating an interceptor chain&quot; --exclusions 'request:84' --exclusions 'DEBUG Sdk' " />
     <kind value="FILE" />
     <filePath value="$PROJECT_DIR$/main.go" />
     <directory value="$PROJECT_DIR$" />
