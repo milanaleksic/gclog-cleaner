@@ -21,13 +21,13 @@ if s == Reading {
 ## Installation
 
 ```
-go get -u github.com/milanaleksic/gclog-cleaner
+$ go get -u github.com/milanaleksic/gclog-cleaner
 ```
 
 ## Usage
 
 ```
-milan@MilanMBP (master) ~/SourceCode/log-gc-cleaner → gclog-cleaner --help
+$ gclog-cleaner --help
 Usage of gclog-cleaner:
   -begin-pattern string
         pattern that should match beginning of all log lines (default "\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}")
@@ -42,7 +42,7 @@ Usage of gclog-cleaner:
 Example with progress provided via `pv` utility
 
 ```bash
-pv -i 0.1 biglogfile.txt | gclog-cleaner \
+$ pv -i 0.1 biglogfile.txt | gclog-cleaner \
   --exclusions '\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}.*\[GC' \
   --exclusions "Creating an interceptor chain" \
   --exclusions 'request:84' \
